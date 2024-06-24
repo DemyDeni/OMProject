@@ -12,4 +12,5 @@ public class Task {
     Storage to;
     Item item;
     Integer itemNum;
+    double chance;
 }

@@ -1,5 +1,5 @@
 package org.om.ga.crossover;
 
 public interface Crossover {
-    CrossoverData cross(CrossoverData crossoverData);
+    CrossoverAndMutationData cross(CrossoverData crossoverData);
 }
