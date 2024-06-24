@@ -22,7 +22,7 @@ public class Distributor implements Storage, Cloneable {
         Random random = new Random();
         retailerDistances = new ArrayList<>(retailerList.size());
         for (Retailer retailer : retailerList) {
-            retailerDistances.add(random.nextInt(1, 20)); //TODO
+            retailerDistances.add(random.nextInt(10, 100));
         }
     }
 

@@ -25,7 +25,7 @@ public class Manufacturer implements Storage, Cloneable {
         Random random = new Random();
         distributorDistances = new ArrayList<>(distributorList.size());
         for (Distributor item : distributorList) {
-            distributorDistances.add(random.nextInt(1, 20)); //TODO
+            distributorDistances.add(random.nextInt(10, 100));
         }
     }
 

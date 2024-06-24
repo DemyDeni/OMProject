@@ -4,10 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Objects;
-import java.util.Random;
+import java.security.KeyStore;
+import java.util.*;
 
 @Getter
 @Setter
@@ -24,7 +22,7 @@ public class Graph implements Cloneable {
         generatePersons(config.getPersonsNum(), config.getPersonsMinOrders(), config.getPersonsMaxOrders());
         generateRetailers(config.getRetailersNum());
         generateDistributors(config.getDistributorsNum());
-        generateManufacturer(config.getManufacturerItemsPerDay());
+        generateManufacturer();
     }
 
     private void generateItems(Integer num, Integer minPrice, Integer maxPrice, Double minMultiplier, Double maxMultiplier) {
@@ -36,9 +34,35 @@ public class Graph implements Cloneable {
     }
 
     private void generatePersons(Integer num, Integer minOrders, Integer maxOrders) {
+        ArrayList<Double> itemProbabilitiesPool = new ArrayList<>();
+        ArrayList<Integer> itemRequests = new ArrayList<>();
+        Random random = new Random();
+
+        double totalItemProb = 0.4 * num;
+        for (int i = 0; i < items.size(); i++){
+            itemProbabilitiesPool.add(totalItemProb);
+            itemRequests.add(0);
+        }
+
         persons = new ArrayList<>(num);
         for (int i = 0; i < num; i++) {
-            persons.add(new Person(minOrders, maxOrders, items));
+            ArrayList<Double> itemProbabilities = new ArrayList<>();
+            double itemProb;
+            for (int j = 0; j < itemProbabilitiesPool.size(); j++){
+                if (itemProbabilitiesPool.get(j) > 0.99){
+                    itemProb = random.nextDouble(0, 0.8);
+                    itemProbabilities.add(itemProb);
+                    itemProbabilitiesPool.set(j, itemProbabilitiesPool.get(j) - itemProb);
+                }
+                else {
+                    itemProb = itemProbabilitiesPool.get(j);
+                    itemProbabilities.add(itemProb);
+                    itemProbabilitiesPool.set(j, itemProbabilitiesPool.get(j) - itemProb);
+                }
+            }
+            Person personToAdd = new Person(minOrders, maxOrders, items, itemProbabilities);
+            personToAdd.setOrders(personToAdd.generateNewOrders(items));
+            persons.add(personToAdd);
         }
     }
 
@@ -56,10 +80,16 @@ public class Graph implements Cloneable {
         }
     }
 
-    private void generateManufacturer(Integer newItemNum) {
+    private void generateManufacturer() {
         HashMap<Item, Integer> itemsToProduce = new HashMap<>(items.size());
-        for (Item item : items) {
-            itemsToProduce.put(item, newItemNum / items.size()); // TODO: generate
+        for (Person person : persons) {
+            for (Map.Entry<Item, Integer> entry : person.getOrders().entrySet()){
+                itemsToProduce.put(entry.getKey(), itemsToProduce.getOrDefault(entry.getKey(), 0) + entry.getValue());
+            }
+        }
+
+        for (Map.Entry<Item, Integer> entry : itemsToProduce.entrySet()){
+            itemsToProduce.put(entry.getKey(), (int) (itemsToProduce.get(entry.getKey()) * 0.5));
         }
         manufacturer = new Manufacturer(items, distributors, itemsToProduce);
     }
@@ -68,7 +98,6 @@ public class Graph implements Cloneable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Graph graph = (Graph) o;
         return o.hashCode() == this.hashCode();
     }
 
