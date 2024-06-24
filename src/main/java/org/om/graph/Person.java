@@ -14,16 +14,16 @@ public class Person implements Storage, Cloneable {
     Integer maxOrders;
     HashMap<Item, Integer> orders;
 
-    public Person(Integer minOrders, Integer maxOrders, List<Item> items) {
+    public Person(Integer minOrders, Integer maxOrders, List<Item> items, ArrayList<Double> itemProbabilitiesInput) {
         this.minOrders = minOrders;
         this.maxOrders = maxOrders;
         orders = new HashMap<>();
 
-        //TODO: generate probs
-        Random random = new Random();
-        itemProbabilities = new HashMap<>(items.size());
+        int i = 0;
+        itemProbabilities = new HashMap<Item, Double>();
         for (Item item : items) {
-            itemProbabilities.put(item, random.nextDouble(0, 0.5));
+            itemProbabilities.put(item, itemProbabilitiesInput.get(i));
+            i++;
         }
     }
 

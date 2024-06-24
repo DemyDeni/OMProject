@@ -12,7 +12,7 @@ import java.util.Random;
 
 public class App {
     public static void main(String[] args) {
-//        Manager manager = new Manager();
+        Manager manager = new Manager();
 
         Item item1 = new Item(1, 10, 0.5);
         Item item2 = item1.clone();

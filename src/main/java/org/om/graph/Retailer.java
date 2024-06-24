@@ -20,7 +20,7 @@ public class Retailer implements Storage, Cloneable {
         Random random = new Random();
         personDistances = new ArrayList<>(personList.size());
         for (Person person : personList) {
-            personDistances.add(random.nextInt(1, 20)); //TODO
+            personDistances.add(random.nextInt(10, 100));
         }
     }
 
