@@ -11,9 +11,9 @@ import java.util.Objects;
 @Setter
 @AllArgsConstructor
 public class Item implements Cloneable {
-    int id;
-    int price;
-    double storageMultiplier;
+    Integer id;
+    Integer price;
+    Double storageMultiplier;
 
     @Override
     public boolean equals(Object o) {
@@ -29,6 +29,7 @@ public class Item implements Cloneable {
 
     @SneakyThrows
     public Item clone() {
-        return (Item) super.clone();
+//        super.clone();
+        return this;
     }
 }

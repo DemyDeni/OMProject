@@ -2,15 +2,16 @@ package org.om.graph;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
 
 import java.util.*;
 
 @Getter
 @Setter
-public class Person implements Storage, Cloneable{
-    ArrayList<Double> itemProbabilities;
-    int minOrders;
-    int maxOrders;
+public class Person implements Storage, Cloneable {
+    HashMap<Item, Double> itemProbabilities;
+    Integer minOrders;
+    Integer maxOrders;
     HashMap<Item, Integer> orders;
 
     public Person(Integer minOrders, Integer maxOrders, List<Item> items) {
@@ -20,9 +21,9 @@ public class Person implements Storage, Cloneable{
 
         //TODO: generate probs
         Random random = new Random();
-        itemProbabilities = new ArrayList<>(items.size());
-        for (int i = 0; i < items.size(); i++) {
-            itemProbabilities.add(random.nextDouble(0, 0.15));
+        itemProbabilities = new HashMap<>(items.size());
+        for (Item item : items) {
+            itemProbabilities.put(item, random.nextDouble(0, 0.5));
         }
     }
 
@@ -39,12 +40,26 @@ public class Person implements Storage, Cloneable{
         return Objects.hash(itemProbabilities, minOrders, maxOrders, orders);
     }
 
+    @SneakyThrows
+    public Person clone() {
+        Person cloned = (Person) super.clone();
+        cloned.itemProbabilities = new HashMap<>(this.itemProbabilities.size());
+        for (Map.Entry<Item, Double> entry : this.itemProbabilities.entrySet()) {
+            cloned.itemProbabilities.put(entry.getKey().clone(), entry.getValue());
+        }
+        cloned.orders = new HashMap<>(this.orders.size());
+        for (Map.Entry<Item, Integer> entry : this.orders.entrySet()) {
+            cloned.orders.put(entry.getKey().clone(), entry.getValue());
+        }
+        return cloned;
+    }
+
     public HashMap<Item, Integer> generateNewOrders(List<Item> items) {
         Random random = new Random();
-        HashMap<Item,Integer> newOrders = new HashMap<>(items.size());
-        for (int i = 0; i < itemProbabilities.size(); i++) {
-            if (random.nextInt(0, 101) < itemProbabilities.get(i)) {
-                newOrders.put(items.get(i), random.nextInt(minOrders, maxOrders));
+        HashMap<Item, Integer> newOrders = new HashMap<>(items.size());
+        for (Item item : items) {
+            if (random.nextDouble(0, 1) < itemProbabilities.get(item)) {
+                newOrders.put(item, random.nextInt(minOrders, maxOrders));
             }
         }
         return newOrders;

@@ -1,16 +1,12 @@
 package org.om.graph;
 
 import lombok.Getter;
-import lombok.Setter;
+import lombok.SneakyThrows;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 @Getter
-@Setter
-public class Retailer implements Storage {
+public class Retailer implements Storage, Cloneable {
     Integer storageCost = 3;
     HashMap<Item, Integer> items;
     ArrayList<Integer> personDistances;
@@ -26,5 +22,28 @@ public class Retailer implements Storage {
         for (Person person : personList) {
             personDistances.add(random.nextInt(1, 20)); //TODO
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Retailer retailer = (Retailer) o;
+        return o.hashCode() == this.hashCode();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(storageCost, items, personDistances);
+    }
+
+    @SneakyThrows
+    public Retailer clone() {
+        Retailer cloned = (Retailer) super.clone();
+        cloned.items = new HashMap<>(this.items.size());
+        for (Map.Entry<Item, Integer> entry : this.items.entrySet()) {
+            cloned.items.put(entry.getKey().clone(), entry.getValue());
+        }
+        return cloned;
     }
 }

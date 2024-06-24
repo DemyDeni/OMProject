@@ -6,11 +6,12 @@ import lombok.SneakyThrows;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Random;
 
 @Getter
 @Setter
-public class Graph {
+public class Graph implements Cloneable {
     private ArrayList<Item> items;
     private ArrayList<Person> persons;
     private ArrayList<Retailer> retailers;
@@ -63,4 +64,35 @@ public class Graph {
         manufacturer = new Manufacturer(items, distributors, itemsToProduce);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Graph graph = (Graph) o;
+        return o.hashCode() == this.hashCode();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(items, persons, retailers, distributors, manufacturer);
+    }
+
+    @SneakyThrows
+    public Graph clone() {
+        Graph cloned = (Graph) super.clone();
+        cloned.persons = new ArrayList<>(this.persons.size());
+        for (Person person : this.persons) {
+            cloned.persons.add(person.clone());
+        }
+        cloned.retailers = new ArrayList<>(this.retailers.size());
+        for (Retailer retailer : this.retailers) {
+            cloned.retailers.add(retailer.clone());
+        }
+        cloned.distributors = new ArrayList<>(this.distributors.size());
+        for (Distributor distributor : this.distributors) {
+            cloned.distributors.add(distributor.clone());
+        }
+        cloned.manufacturer = this.manufacturer.clone();
+        return cloned;
+    }
 }
