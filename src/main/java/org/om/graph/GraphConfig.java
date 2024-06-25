@@ -1,6 +1,9 @@
 package org.om.graph;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -18,4 +21,5 @@ public class GraphConfig {
     private Integer retailersNum;
     private Integer distributorsNum;
     private Integer manufacturerItemsPerDay;
+    private FitnessValues fitnessValues;
 }

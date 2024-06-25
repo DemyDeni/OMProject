@@ -6,8 +6,7 @@ import lombok.SneakyThrows;
 import java.util.*;
 
 @Getter
-public class Retailer implements Storage, Cloneable {
-    Integer storageCost = 3;
+public class Retailer implements Cloneable {
     HashMap<Item, Integer> items;
     ArrayList<Integer> personDistances;
 
@@ -33,7 +32,7 @@ public class Retailer implements Storage, Cloneable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(storageCost, items, personDistances);
+        return Objects.hash(items, personDistances);
     }
 
     @SneakyThrows

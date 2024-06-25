@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.om.graph.Item;
-import org.om.graph.Storage;
+import org.om.graph.StorageType;
 
 import java.util.Objects;
 
@@ -13,8 +13,9 @@ import java.util.Objects;
 @Setter
 @AllArgsConstructor
 public class Task implements Cloneable {
-    Storage from;
-    Storage to;
+    StorageType fromType;
+    Integer from;
+    Integer to;
     Item item;
     Integer itemNum;
     Double chance;
@@ -34,6 +35,7 @@ public class Task implements Cloneable {
     @SneakyThrows
     public Task clone() {
         Task cloned = (Task) super.clone();
+        cloned.item = this.item.clone();
         return cloned;
     }
 }

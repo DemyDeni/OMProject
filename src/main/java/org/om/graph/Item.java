@@ -11,9 +11,9 @@ import java.util.Objects;
 @Setter
 @AllArgsConstructor
 public class Item implements Cloneable {
-    Integer id;
-    Integer price;
-    Double storageMultiplier;
+    private Integer id;
+    private Integer price;
+    private Double storageMultiplier;
 
     @Override
     public boolean equals(Object o) {

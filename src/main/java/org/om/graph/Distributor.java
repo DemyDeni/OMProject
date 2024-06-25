@@ -8,8 +8,7 @@ import java.util.*;
 
 @Getter
 @Setter
-public class Distributor implements Storage, Cloneable {
-    Integer storageCost = 2;
+public class Distributor implements Cloneable {
     HashMap<Item, Integer> items;
     ArrayList<Integer> retailerDistances;
 
@@ -35,7 +34,7 @@ public class Distributor implements Storage, Cloneable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(storageCost, items, retailerDistances);
+        return Objects.hash(items, retailerDistances);
     }
 
     @SneakyThrows

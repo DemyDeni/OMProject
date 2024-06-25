@@ -4,10 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.om.ga.Genotype;
 import org.om.ga.Population;
-import org.om.graph.Graph;
-import org.om.graph.GraphConfig;
-import org.om.graph.Item;
-import org.om.graph.Person;
+import org.om.graph.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,9 +13,11 @@ import java.util.List;
 @Getter
 @Setter
 public class Manager {
-    private Graph startingGraph;
+    private Graph graph;
+    private Population population;
+    private FitnessValues fitnessValues;
 
-    public Manager() {
+    public Manager(Integer populationNum, FitnessValues fitnessValues) {
         GraphConfig config = GraphConfig.builder()
                 .itemsNum(5)
                 .itemMinPrice(10)
@@ -31,25 +30,22 @@ public class Manager {
                 .retailersNum(5)
                 .distributorsNum(2)
                 .manufacturerItemsPerDay(60)
+                .fitnessValues(fitnessValues)
                 .build();
-        startingGraph = new Graph(config);
+        graph = new Graph(config);
+        population = getRandomPopulation(graph, populationNum, fitnessValues);
+        this.fitnessValues = fitnessValues;
     }
 
-    public Genotype simulateOneByOne(Integer days, Integer populationNum, Integer generationsNum) {
+    public Genotype simulateOneByOne(Integer days, Integer generationsNum) {
         // list of choices for each person for each day
         ArrayList<HashMap<Person, HashMap<Item, Integer>>> personChoices = initializePersonChoices(days);
+        List<Double> fitnessList = new ArrayList<>(days);
 
-        // graphs for population
-        List<Graph> graphs = new ArrayList<>();
-        for (int i = 0; i < populationNum; i++) {
-            graphs.add(startingGraph.clone());
-        }
-        // genotypes fer each population
-        Population population = getRandomPopulation(startingGraph, populationNum, 10, 0.15d);
         // simulate day-by-day
         for (int d = 0; d < days; d++) {
             for (int g = 0; g < population.getSize(); g++) {
-                simulateDayForGenotype(generationsNum, graphs.get(g), population.getGenotypes().get(g), personChoices.get(d));
+                simulateDayForGenotype(generationsNum, graph.clone(), population.getGenotypes().get(g), personChoices.get(d));
             }
 
             Population newPopulation = new Population();
@@ -63,8 +59,19 @@ public class Manager {
             // add 2/4 genotypes after crossover and mutation
             newPopulation.getGenotypes().addAll(population.getRandomGenotypesWithMutation(population.getSize() / 2));
 
+            // update population
             population = newPopulation;
+
+            // apply best genotype to current graph
+            Genotype best = population.getBestGenotype();
+            graph.applyGenotype(best, fitnessValues);
+
+            fitnessList.add(best.getFitness());
         }
+
+        System.out.println("Minimum fitness: " + fitnessList.stream().mapToDouble(Double::doubleValue).min().getAsDouble());
+        System.out.println("Maximum fitness: " + fitnessList.stream().mapToDouble(Double::doubleValue).max().getAsDouble());
+        System.out.println("Average fitness: " + fitnessList.stream().mapToDouble(Double::doubleValue).average().getAsDouble());
 
         return population.getBestGenotype();
     }
@@ -73,19 +80,19 @@ public class Manager {
     private ArrayList<HashMap<Person, HashMap<Item, Integer>>> initializePersonChoices(Integer days) {
         ArrayList<HashMap<Person, HashMap<Item, Integer>>> personChoices = new ArrayList<>(days);
         for (int i = 0; i < days; i++) {
-            HashMap<Person, HashMap<Item, Integer>> personChoicesForDay = new HashMap<>(startingGraph.getPersons().size());
-            for (Person person : startingGraph.getPersons()) {
-                personChoicesForDay.put(person, person.generateNewOrders(startingGraph.getItems()));
+            HashMap<Person, HashMap<Item, Integer>> personChoicesForDay = new HashMap<>(graph.getPersons().size());
+            for (Person person : graph.getPersons()) {
+                personChoicesForDay.put(person, person.generateNewOrders());
             }
             personChoices.add(personChoicesForDay);
         }
         return personChoices;
     }
 
-    private Population getRandomPopulation(Graph graph, Integer population, Integer moveItemNum, Double moveItemChance) {
+    private Population getRandomPopulation(Graph graph, Integer population, FitnessValues fitnessValues) {
         Population newPopulation = new Population();
         for (int i = 0; i < population; i++) {
-            newPopulation.getGenotypes().add(Genotype.generateRandomGenotype(graph, 10, 0.15d));
+            newPopulation.getGenotypes().add(Genotype.generateRandomGenotype(graph, fitnessValues));
         }
         return newPopulation;
     }
@@ -99,9 +106,7 @@ public class Manager {
             graph.applyPersonChoices(personChoices);
 
             // apply genotype and calculate fitness
-            graph.applyGenotype(genotype);
-
-            //TODO: reset prices for items
+            graph.applyGenotype(genotype, fitnessValues);
         }
     }
 }

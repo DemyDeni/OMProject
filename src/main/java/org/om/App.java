@@ -1,21 +1,22 @@
 package org.om;
 
 import org.om.ga.Genotype;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import org.om.graph.FitnessValues;
 
 public class App {
     public static void main(String[] args) {
-        Manager manager = new Manager();
-        Genotype best = manager.simulateOneByOne(10, 100, 100);
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        try {
-            String name = reader.readLine();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        FitnessValues fitnessValues = FitnessValues.builder()
+                .moveItemNum(10)
+                .moveItemChance(0.15d)
+                .itemPriceMod(10d)
+                .manufacturerStorageCost(0.1d)
+                .distributorStorageCost(0.2d)
+                .retailerStorageCost(0.3d)
+                .noAvailableItemsToMoveMod(0.1d)
+                .noAvailableItemsToTakeMod(0.05d)
+                .availableItemsToTakeMod(1d)
+                .build();
+        Manager manager = new Manager(100, fitnessValues);
+        Genotype best = manager.simulateOneByOne(50, 100);
     }
 }

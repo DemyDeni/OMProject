@@ -8,12 +8,11 @@ import java.util.*;
 
 @Getter
 @Setter
-public class Manufacturer implements Storage, Cloneable {
-    Integer storageCost = 1;
-    HashMap<Item, Integer> items;
-    ArrayList<Integer> distributorDistances;
+public class Manufacturer implements Cloneable {
+    private HashMap<Item, Integer> items;
+    private ArrayList<Integer> distributorDistances;
 
-    HashMap<Item, Integer> itemsToProduce;
+    private HashMap<Item, Integer> itemsToProduce;
 
     public Manufacturer(List<Item> itemList, List<Distributor> distributorList, HashMap<Item, Integer> itemsToProduceList) {
         itemsToProduce = itemsToProduceList;
@@ -44,7 +43,7 @@ public class Manufacturer implements Storage, Cloneable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(storageCost, items, distributorDistances, itemsToProduce);
+        return Objects.hash(items, distributorDistances, itemsToProduce);
     }
 
     @SneakyThrows

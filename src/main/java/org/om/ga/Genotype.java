@@ -2,37 +2,57 @@ package org.om.ga;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.SneakyThrows;
-import org.om.graph.Distributor;
-import org.om.graph.Graph;
-import org.om.graph.Item;
-import org.om.graph.Retailer;
+import org.om.graph.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Getter
 @NoArgsConstructor
 public class Genotype implements Cloneable {
+    @Setter
     private Double fitness = 0d;
     private List<Task> tasks = new ArrayList<>();
 
-    public static Genotype generateRandomGenotype(Graph graph, Integer moveItemNum, Double moveItemChance) {
+    public static Genotype generateRandomGenotype(Graph graph, FitnessValues fitnessValues) {
         Genotype genotype = new Genotype();
-        for (Distributor distributor : graph.getDistributors()) {
+        for (int d = 0; d < graph.getDistributors().size(); d++) {
             // add all links from manufacturer to all distributors
             for (Item item : graph.getItems()) {
-                genotype.tasks.add(new Task(graph.getManufacturer(), distributor, item, moveItemNum, moveItemChance));
+                genotype.tasks.add(new Task(StorageType.MANUFACTURER, 0, d, item, fitnessValues.getMoveItemNum(), fitnessValues.getMoveItemChance()));
             }
             // add all links from all distributors to all retailers
-            for (Retailer retailer : graph.getRetailers()) {
+            for (int r = 0; r < graph.getRetailers().size(); r++) {
                 for (Item item : graph.getItems()) {
-                    genotype.tasks.add(new Task(distributor, retailer, item, moveItemNum, moveItemChance));
+                    genotype.tasks.add(new Task(StorageType.DISTRIBUTOR, d, r, item, fitnessValues.getMoveItemNum(), fitnessValues.getMoveItemChance()));
                 }
             }
         }
+        genotype.fitness = genotype.calculateFitness(graph, fitnessValues);
         return genotype;
+    }
+
+    public Double calculateFitness(Graph graph, FitnessValues fitnessValues) {
+        // iterate over manufacturer items
+        Double newFitness = calculateFitnessForItems(graph.getManufacturer().getItems(), fitnessValues);
+        // iterate over all items in all distributors
+        for (Distributor distributor : graph.getDistributors()) {
+            newFitness += calculateFitnessForItems(distributor.getItems(), fitnessValues);
+        }
+        // iterate over all items in all retailers
+        for (Retailer retailer : graph.getRetailers()) {
+            newFitness += calculateFitnessForItems(retailer.getItems(), fitnessValues);
+        }
+        return newFitness;
+    }
+
+    private Double calculateFitnessForItems(HashMap<Item, Integer> items, FitnessValues fitnessValues) {
+        double fitness = 0d;
+        for (Map.Entry<Item, Integer> entry : items.entrySet()) {
+            fitness += entry.getKey().getPrice() * fitnessValues.getItemPriceMod() * entry.getValue();
+        }
+        return fitness;
     }
 
     @Override

@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.om.ga.Genotype;
+import org.om.ga.Task;
 
 import java.util.*;
 
@@ -60,7 +61,7 @@ public class Graph implements Cloneable {
                 }
             }
             Person personToAdd = new Person(minOrders, maxOrders, items, itemProbabilities);
-            personToAdd.setOrders(personToAdd.generateNewOrders(items));
+            personToAdd.setOrders(personToAdd.generateNewOrders());
             persons.add(personToAdd);
         }
     }
@@ -130,9 +131,117 @@ public class Graph implements Cloneable {
         }
     }
 
-    public Genotype applyGenotype(Genotype genotypes) {
-        //TODO: apply tasks
-        //TODO: calculate fitness of genotype
-        return null;
+    public void applyGenotype(Genotype genotype, FitnessValues fitnessValues) {
+        Double fitness = genotype.calculateFitness(this, fitnessValues);
+        fitness -= calculateStorageCost(genotype, fitnessValues);
+        fitness -= moveAndCalculateMoveCost(genotype.getTasks(), fitnessValues);
+        fitness -= takeAndCalculateTakeCost(fitnessValues);
+        genotype.setFitness(fitness);
+    }
+
+    private Double calculateStorageCost(Genotype genotype, FitnessValues fitnessValues) {
+        // iterate over all items in all manufacturer
+        Double fitnessPenalty = calculateStorageCostForItems(StorageType.MANUFACTURER, manufacturer.getItems(), fitnessValues);
+        // iterate over all items in all distributors
+        for (Distributor distributor : distributors) {
+            fitnessPenalty += calculateStorageCostForItems(StorageType.DISTRIBUTOR, distributor.getItems(), fitnessValues);
+        }
+        // iterate over all items in all retailers
+        for (Retailer retailer : retailers) {
+            fitnessPenalty += calculateStorageCostForItems(StorageType.RETAILER, retailer.getItems(), fitnessValues);
+        }
+        return fitnessPenalty;
+    }
+
+    private Double calculateStorageCostForItems(StorageType storageType, HashMap<Item, Integer> items, FitnessValues fitnessValues) {
+        Double fitnessPenalty = 0d;
+        double storageCost = getStorageCost(storageType, fitnessValues);
+        for (Map.Entry<Item, Integer> entry : items.entrySet()) {
+            fitnessPenalty += storageCost * entry.getKey().getStorageMultiplier();
+        }
+        return fitnessPenalty;
+    }
+
+    private Double getStorageCost(StorageType storageType, FitnessValues fitnessValues) {
+        switch (storageType) {
+            case MANUFACTURER -> {
+                return fitnessValues.getManufacturerStorageCost();
+            }
+            case DISTRIBUTOR -> {
+                return fitnessValues.getDistributorStorageCost();
+            }
+            case RETAILER -> {
+                return fitnessValues.getRetailerStorageCost();
+            }
+            default -> {
+                return 1d;
+            }
+        }
+    }
+
+    private Double moveAndCalculateMoveCost(List<Task> tasks, FitnessValues fitnessValues) {
+        Double fitnessPenalty = 0d;
+        for (Task task : tasks) {
+            Item item = task.getItem();
+            Integer itemNum = task.getItemNum();
+            if (task.getFromType() == StorageType.MANUFACTURER) {
+                Manufacturer from = manufacturer;
+                Distributor to = distributors.get(task.getTo());
+                if (from.getItems().get(item) < itemNum) {
+                    int itemsMissing = itemNum - from.getItems().get(item);
+                    fitnessPenalty += itemsMissing * fitnessValues.getNoAvailableItemsToMoveMod();
+                    from.getItems().put(item, 0);
+                    to.getItems().put(item, to.getItems().get(item) + itemNum - itemsMissing);
+                } else {
+                    from.getItems().put(item, from.getItems().get(item) - itemNum);
+                    to.getItems().put(item, to.getItems().get(item) + itemNum);
+                }
+                fitnessPenalty += manufacturer.getDistributorDistances().get(task.getTo());
+            } else {
+                Distributor from = distributors.get(task.getFrom());
+                Retailer to = retailers.get(task.getTo());
+                if (from.getItems().get(item) < itemNum) {
+                    int itemsMissing = itemNum - from.getItems().get(item);
+                    fitnessPenalty += itemsMissing * fitnessValues.getNoAvailableItemsToMoveMod();
+                    from.getItems().put(item, 0);
+                    to.getItems().put(item, to.getItems().get(item) + itemNum - itemsMissing);
+                } else {
+                    from.getItems().put(item, from.getItems().get(item) - itemNum);
+                    to.getItems().put(item, to.getItems().get(item) + itemNum);
+                }
+                fitnessPenalty += from.getRetailerDistances().get(task.getTo());
+            }
+        }
+        return fitnessPenalty;
+    }
+
+    private Double takeAndCalculateTakeCost(FitnessValues fitnessValues) {
+        Double fitnessPenalty = 0d;
+        for (Person person : persons) {
+            for (Map.Entry<Item, Integer> order : person.getOrders().entrySet()) {
+                if (order.getValue() == 0) continue;
+                int itemsLeft = order.getValue();
+                for (Retailer retailer : retailers) {
+                    int itemsInRetailer = retailer.getItems().get(order.getKey());
+                    int itemsToTake;
+                    if (itemsInRetailer == 0) continue;
+                    else if (itemsInRetailer >= order.getValue()) {
+                        itemsToTake = itemsInRetailer - order.getValue();
+                    } else {
+                        itemsToTake = itemsInRetailer;
+                    }
+                    retailer.getItems().put(order.getKey(), itemsInRetailer - itemsToTake);
+                    itemsLeft -= itemsToTake;
+                    fitnessPenalty -= itemsToTake * fitnessValues.getAvailableItemsToTakeMod();
+
+                    if (itemsLeft == 0) {
+                        break;
+                    } else {
+                        fitnessPenalty += itemsLeft * fitnessValues.getNoAvailableItemsToTakeMod();
+                    }
+                }
+            }
+        }
+        return fitnessPenalty;
     }
 }
