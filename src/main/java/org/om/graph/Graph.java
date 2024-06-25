@@ -3,8 +3,8 @@ package org.om.graph;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
+import org.om.ga.Genotype;
 
-import java.security.KeyStore;
 import java.util.*;
 
 @Getter
@@ -39,7 +39,7 @@ public class Graph implements Cloneable {
         Random random = new Random();
 
         double totalItemProb = 0.4 * num;
-        for (int i = 0; i < items.size(); i++){
+        for (int i = 0; i < items.size(); i++) {
             itemProbabilitiesPool.add(totalItemProb);
             itemRequests.add(0);
         }
@@ -48,13 +48,12 @@ public class Graph implements Cloneable {
         for (int i = 0; i < num; i++) {
             ArrayList<Double> itemProbabilities = new ArrayList<>();
             double itemProb;
-            for (int j = 0; j < itemProbabilitiesPool.size(); j++){
-                if (itemProbabilitiesPool.get(j) > 0.99){
+            for (int j = 0; j < itemProbabilitiesPool.size(); j++) {
+                if (itemProbabilitiesPool.get(j) > 0.99) {
                     itemProb = random.nextDouble(0, 0.8);
                     itemProbabilities.add(itemProb);
                     itemProbabilitiesPool.set(j, itemProbabilitiesPool.get(j) - itemProb);
-                }
-                else {
+                } else {
                     itemProb = itemProbabilitiesPool.get(j);
                     itemProbabilities.add(itemProb);
                     itemProbabilitiesPool.set(j, itemProbabilitiesPool.get(j) - itemProb);
@@ -83,12 +82,12 @@ public class Graph implements Cloneable {
     private void generateManufacturer() {
         HashMap<Item, Integer> itemsToProduce = new HashMap<>(items.size());
         for (Person person : persons) {
-            for (Map.Entry<Item, Integer> entry : person.getOrders().entrySet()){
+            for (Map.Entry<Item, Integer> entry : person.getOrders().entrySet()) {
                 itemsToProduce.put(entry.getKey(), itemsToProduce.getOrDefault(entry.getKey(), 0) + entry.getValue());
             }
         }
 
-        for (Map.Entry<Item, Integer> entry : itemsToProduce.entrySet()){
+        for (Map.Entry<Item, Integer> entry : itemsToProduce.entrySet()) {
             itemsToProduce.put(entry.getKey(), (int) (itemsToProduce.get(entry.getKey()) * 0.5));
         }
         manufacturer = new Manufacturer(items, distributors, itemsToProduce);
@@ -123,5 +122,21 @@ public class Graph implements Cloneable {
         }
         cloned.manufacturer = this.manufacturer.clone();
         return cloned;
+    }
+
+    public void applyPersonChoices(HashMap<Person, HashMap<Item, Integer>> choices) {
+        for (Person person : persons) {
+            person.setOrders(choices.get(person));
+        }
+    }
+
+    public Genotype applyGenotype(Genotype genotypes) {
+        //TODO: apply tasks
+        //TODO: calculate fitness of genotype
+        return null;
+    }
+
+    public Integer getFitness() {
+        return 0;
     }
 }
