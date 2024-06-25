@@ -18,5 +18,17 @@ public class App {
                 .build();
         Manager manager = new Manager(100, fitnessValues);
         Genotype best = manager.simulateOneByOne(30, 500);
+
+
+        Manager manager = new Manager();
+//        Genotype best = manager.simulateOneByOne(10, 100, 100);
+        Genotype best2 = manager.simulateMultipleDaysPerIter(30, 200, 1000);
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        try {
+            String name = reader.readLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

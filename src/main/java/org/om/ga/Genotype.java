@@ -9,6 +9,7 @@ import org.om.graph.*;
 import java.util.*;
 
 @Getter
+@Setter
 @NoArgsConstructor
 public class Genotype implements Cloneable {
     @Setter
