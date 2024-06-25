@@ -2,17 +2,16 @@ package org.om.ga;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.SneakyThrows;
-import org.om.graph.Distributor;
-import org.om.graph.Graph;
-import org.om.graph.Item;
-import org.om.graph.Retailer;
+import org.om.graph.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 @Getter
+@Setter
 @NoArgsConstructor
 public class Genotype implements Cloneable {
     private Double fitness = 0d;
@@ -20,15 +19,15 @@ public class Genotype implements Cloneable {
 
     public static Genotype generateRandomGenotype(Graph graph, Integer moveItemNum, Double moveItemChance) {
         Genotype genotype = new Genotype();
-        for (Distributor distributor : graph.getDistributors()) {
+        for (int i = 0; i < graph.getDistributors().size(); i++) {
             // add all links from manufacturer to all distributors
             for (Item item : graph.getItems()) {
-                genotype.tasks.add(new Task(graph.getManufacturer(), distributor, item, moveItemNum, moveItemChance));
+                genotype.tasks.add(new Task(0, StorageType.MANUFACTURER, i, item, moveItemNum, moveItemChance));
             }
             // add all links from all distributors to all retailers
-            for (Retailer retailer : graph.getRetailers()) {
+            for (int j = 0; j < graph.getRetailers().size(); j++) {
                 for (Item item : graph.getItems()) {
-                    genotype.tasks.add(new Task(distributor, retailer, item, moveItemNum, moveItemChance));
+                    genotype.tasks.add(new Task(i, StorageType.DISTRIBUTOR, j, item, moveItemNum, moveItemChance));
                 }
             }
         }

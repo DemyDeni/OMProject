@@ -11,7 +11,7 @@ import java.util.Random;
 @NoArgsConstructor
 public class TournamentSelection implements Selection {
     private Random random = new Random();
-    private Integer poolSize = 3;
+    private Integer poolSize = 4;
 
     @Override
     public Genotype select(Population population) {

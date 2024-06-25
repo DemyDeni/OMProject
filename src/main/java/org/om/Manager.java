@@ -4,14 +4,15 @@ import lombok.Getter;
 import lombok.Setter;
 import org.om.ga.Genotype;
 import org.om.ga.Population;
-import org.om.graph.Graph;
-import org.om.graph.GraphConfig;
-import org.om.graph.Item;
-import org.om.graph.Person;
+import org.om.ga.crossover.UniformCrossover;
+import org.om.ga.mutation.UniformMutation;
+import org.om.ga.selection.TournamentSelection;
+import org.om.graph.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 @Getter
 @Setter
@@ -35,19 +36,65 @@ public class Manager {
         startingGraph = new Graph(config);
     }
 
-    public Genotype simulateOneByOne(Integer days, Integer populationNum, Integer generationsNum) {
+    public Genotype simulateMultipleDaysPerIter(Integer days, Integer populationSize, Integer iterations){
+        Population population = getRandomPopulation(startingGraph, populationSize, 10, 0.15d);
+        TournamentSelection tournamentSelection = new TournamentSelection();
+        UniformCrossover uniformCrossover = new UniformCrossover();
+        UniformMutation uniformMutation = new UniformMutation();
+        Random random = new Random();
+
+        for (int i = 0; i < iterations; i++){
+            for (Genotype genotype : population.getGenotypes()){
+                Graph graph = startingGraph.clone();
+                SimulationInstance simulationInstance = new SimulationInstance(graph, 0);
+                genotype.setFitness(simulationInstance.simulateDays(days, genotype.getTasks()));
+            }
+
+            System.out.println("Best fitness of iteration " + i + ": " + population.getBestGenotype().getFitness());
+
+            Population popAfterSelection = new Population();
+            while (popAfterSelection.getGenotypes().size() < population.getGenotypes().size()/2){
+                popAfterSelection.getGenotypes().add(tournamentSelection.select(population));
+            }
+
+            Population popCrossover = new Population();
+            while (popCrossover.getGenotypes().size() < popAfterSelection.getGenotypes().size()/2){
+                Genotype parent1 = popAfterSelection.getGenotypes().get(random.nextInt(0, popAfterSelection.getSize()-1));
+                Genotype parent2 = popAfterSelection.getGenotypes().get(random.nextInt(0, popAfterSelection.getSize()-1));
+                popCrossover.getGenotypes().add(uniformCrossover.cross(parent1, parent2));
+            }
+
+            Population nextGeneration = new Population();
+            for (Genotype genotype : popCrossover.getGenotypes()){
+                Genotype genotypeToAdd = popAfterSelection.getGenotypes().get(random.nextInt(0, popAfterSelection.getSize()-1));
+                nextGeneration.getGenotypes().add(genotype);
+                nextGeneration.getGenotypes().add(genotypeToAdd);
+            }
+
+            List<Genotype> mutatedGenotypes = new ArrayList<>();
+            for (Genotype genotype : nextGeneration.getGenotypes()){
+                mutatedGenotypes.add(uniformMutation.mutate(genotype));
+            }
+
+            nextGeneration.getGenotypes().addAll(mutatedGenotypes);
+            population = nextGeneration;
+        }
+        return population.getBestGenotype();
+    }
+
+    public Genotype simulateOneByOne(Integer iterationNum, Integer populationNum, Integer generationsNum) {
         // list of choices for each person for each day
-        ArrayList<HashMap<Person, HashMap<Item, Integer>>> personChoices = initializePersonChoices(days);
+        ArrayList<HashMap<Person, HashMap<Item, Integer>>> personChoices = initializePersonChoices(iterationNum);
 
         // graphs for population
-        List<Graph> graphs = new ArrayList<>();
-        for (int i = 0; i < populationNum; i++) {
-            graphs.add(startingGraph.clone());
-        }
         // genotypes fer each population
         Population population = getRandomPopulation(startingGraph, populationNum, 10, 0.15d);
         // simulate day-by-day
-        for (int d = 0; d < days; d++) {
+        for (int d = 0; d < iterationNum; d++) {
+            List<Graph> graphs = new ArrayList<>();
+            for (int i = 0; i < populationNum; i++) {
+                graphs.add(startingGraph.clone());
+            }
             for (int g = 0; g < population.getSize(); g++) {
                 simulateDayForGenotype(generationsNum, graphs.get(g), population.getGenotypes().get(g), personChoices.get(d));
             }
@@ -75,7 +122,7 @@ public class Manager {
         for (int i = 0; i < days; i++) {
             HashMap<Person, HashMap<Item, Integer>> personChoicesForDay = new HashMap<>(startingGraph.getPersons().size());
             for (Person person : startingGraph.getPersons()) {
-                personChoicesForDay.put(person, person.generateNewOrders(startingGraph.getItems()));
+                personChoicesForDay.put(person, person.generateNewOrders());
             }
             personChoices.add(personChoicesForDay);
         }

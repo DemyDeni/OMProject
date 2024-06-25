@@ -9,7 +9,8 @@ import java.io.InputStreamReader;
 public class App {
     public static void main(String[] args) {
         Manager manager = new Manager();
-        Genotype best = manager.simulateOneByOne(10, 100, 100);
+//        Genotype best = manager.simulateOneByOne(10, 100, 100);
+        Genotype best2 = manager.simulateMultipleDaysPerIter(30, 200, 1000);
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         try {

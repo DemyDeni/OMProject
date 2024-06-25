@@ -60,7 +60,7 @@ public class Graph implements Cloneable {
                 }
             }
             Person personToAdd = new Person(minOrders, maxOrders, items, itemProbabilities);
-            personToAdd.setOrders(personToAdd.generateNewOrders(items));
+            personToAdd.setOrders(personToAdd.generateNewOrders());
             persons.add(personToAdd);
         }
     }

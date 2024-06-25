@@ -53,12 +53,12 @@ public class Person implements Cloneable {
         return cloned;
     }
 
-    public HashMap<Item, Integer> generateNewOrders(List<Item> items) {
+    public HashMap<Item, Integer> generateNewOrders() {
         Random random = new Random();
-        HashMap<Item, Integer> newOrders = new HashMap<>(items.size());
-        for (Item item : items) {
-            if (random.nextDouble(0, 1) < itemProbabilities.get(item)) {
-                newOrders.put(item, random.nextInt(minOrders, maxOrders));
+        HashMap<Item, Integer> newOrders = new HashMap<>(itemProbabilities.size());
+        for (Map.Entry<Item, Double> entry : itemProbabilities.entrySet()) {
+            if (random.nextDouble(0, 1) < entry.getValue()) {
+                newOrders.put(entry.getKey(), random.nextInt(minOrders, maxOrders));
             }
         }
         return newOrders;
