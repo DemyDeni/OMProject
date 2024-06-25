@@ -1,9 +1,7 @@
 package org.om.ga.mutation;
 
-import org.om.ga.Task;
-
-import java.util.ArrayList;
+import org.om.ga.Genotype;
 
 public interface Mutation {
-    ArrayList<Task> mutate(ArrayList<Task> list);
+    Genotype mutate(Genotype genotype);
 }

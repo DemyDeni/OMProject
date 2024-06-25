@@ -1,5 +1,7 @@
 package org.om.ga.crossover;
 
+import org.om.ga.Genotype;
+
 public interface Crossover {
-    CrossoverAndMutationData cross(CrossoverData crossoverData);
+    Genotype cross(Genotype parent1, Genotype parent2);
 }

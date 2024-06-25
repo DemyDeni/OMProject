@@ -1,31 +1,26 @@
 package org.om.ga.crossover;
 
-import org.om.ga.Task;
-import org.om.ga.mutation.UniformMutation;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import org.om.ga.Genotype;
 
-import java.util.ArrayList;
 import java.util.Random;
 
+@NoArgsConstructor
+@AllArgsConstructor
 public class UniformCrossover implements Crossover {
-    private final double percentageOfGenesToReplace = 0.04;
+    private Double percentageOfGenesToReplace = 0.04;
+
     @Override
-    public CrossoverAndMutationData cross(CrossoverData crossoverData) {
+    public Genotype cross(Genotype parent1, Genotype parent2) {
         Random random = new Random();
-        UniformMutation mutation = new UniformMutation();
-        int numberOfGenesToReplace = (int) (crossoverData.list1.size() * percentageOfGenesToReplace);
-        for (int i = 0; i < crossoverData.list1.size()-1; i++){
-            if (random.nextInt(0, crossoverData.list1.size()) < numberOfGenesToReplace){
-                Task tempTask = crossoverData.list1.get(i);
-                crossoverData.list1.set(i, crossoverData.list2.get(i));
-                crossoverData.list2.set(i, tempTask);
+        int numberOfGenesToReplace = (int) (parent1.getTasks().size() * percentageOfGenesToReplace);
+        for (int i = 0; i < parent1.getTasks().size() - 1; i++) {
+            if (random.nextInt(0, parent1.getTasks().size()) < numberOfGenesToReplace) {
+                parent1.getTasks().set(i, parent2.getTasks().get(i));
             }
         }
 
-        ArrayList<Task> mutatedList1 = mutation.mutate(crossoverData.list1);
-        ArrayList<Task> mutatedList2 = mutation.mutate(crossoverData.list1);
-        ArrayList<Task> mutatedList3 = mutation.mutate(crossoverData.list2);
-        ArrayList<Task> mutatedList4 = mutation.mutate(crossoverData.list2);
-
-        return new CrossoverAndMutationData(crossoverData.list1, crossoverData.list2, mutatedList1, mutatedList2, mutatedList3, mutatedList4);
+        return parent1;
     }
 }
