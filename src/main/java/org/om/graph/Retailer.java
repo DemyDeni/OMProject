@@ -28,7 +28,6 @@ public class Retailer implements Storage, Cloneable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Retailer retailer = (Retailer) o;
         return o.hashCode() == this.hashCode();
     }
 

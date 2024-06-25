@@ -30,7 +30,6 @@ public class Distributor implements Storage, Cloneable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Distributor that = (Distributor) o;
         return o.hashCode() == this.hashCode();
     }
 

@@ -8,7 +8,7 @@ import java.util.*;
 
 @Getter
 @Setter
-public class Person implements Storage, Cloneable {
+public class Person implements Cloneable {
     HashMap<Item, Double> itemProbabilities;
     Integer minOrders;
     Integer maxOrders;
@@ -31,7 +31,6 @@ public class Person implements Storage, Cloneable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Person person = (Person) o;
         return o.hashCode() == this.hashCode();
     }
 
