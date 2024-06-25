@@ -11,7 +11,7 @@ import java.util.Random;
 @NoArgsConstructor
 public class UniformMutation implements Mutation {
     private Random random = new Random();
-    private Double mutationChance = 0.01;
+    private Double mutationChance = 0.005;
 
     @Override
     public Genotype mutate(Genotype genotype) {

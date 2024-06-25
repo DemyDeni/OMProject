@@ -10,7 +10,7 @@ import java.util.Random;
 @NoArgsConstructor
 public class UniformCrossover implements Crossover {
     private Random random = new Random();
-    private Double percentageOfGenesToReplace = 0.04;
+    private Double percentageOfGenesToReplace = 0.03;
 
     @Override
     public Genotype cross(Genotype parent1, Genotype parent2) {
