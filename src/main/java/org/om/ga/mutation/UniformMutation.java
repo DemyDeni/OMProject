@@ -1,21 +1,22 @@
 package org.om.ga.mutation;
 
-import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.om.ga.Genotype;
 import org.om.ga.Task;
 
 import java.util.Random;
 
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class UniformMutation implements Mutation {
+    private Random random = new Random();
     private Double mutationChance = 0.01;
 
     @Override
     public Genotype mutate(Genotype genotype) {
-        Random random = new Random();
-        for (Task task : genotype.getTasks()) {
+        Genotype newGenotype = genotype.clone();
+        for (Task task : newGenotype.getTasks()) {
             if (random.nextDouble(0, 1) < mutationChance) {
                 if (random.nextBoolean()) {
                     task.setChance(task.getChance() * 1.2);
@@ -26,6 +27,6 @@ public class UniformMutation implements Mutation {
                 }
             }
         }
-        return genotype;
+        return newGenotype;
     }
 }

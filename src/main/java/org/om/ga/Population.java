@@ -74,4 +74,14 @@ public class Population {
         }
         return newGenotypes;
     }
+
+    public Genotype getBestGenotype() {
+        Genotype best = genotypes.get(0);
+        for (Genotype genotype : genotypes) {
+            if (genotype.getFitness() > best.getFitness()) {
+                best = genotype;
+            }
+        }
+        return best;
+    }
 }

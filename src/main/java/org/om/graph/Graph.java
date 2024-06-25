@@ -135,8 +135,4 @@ public class Graph implements Cloneable {
         //TODO: calculate fitness of genotype
         return null;
     }
-
-    public Integer getFitness() {
-        return 0;
-    }
 }

@@ -1,30 +1,24 @@
 package org.om.ga.selection;
 
-import org.om.ga.GA;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.om.ga.Genotype;
+import org.om.ga.Population;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
-class TournamentSelection {
+@Setter
+@NoArgsConstructor
+public class TournamentSelection implements Selection {
     private Random random = new Random();
+    private Integer poolSize = 3;
 
-    public ArrayList<GA> select(List<GA> population, double percentage) {
-        int selectionSize = population.size()/2;
-        ArrayList<GA> selected = new ArrayList<>();
+    @Override
+    public Genotype select(Population population) {
+        Genotype best = population.getGenotypes().get(random.nextInt(population.getSize()));
 
-        while (selected.size() < selectionSize) {
-            selected.add(tournament(population));
-        }
-
-        return selected;
-    }
-
-    private GA tournament(List<GA> population) {
-        GA best = population.get(random.nextInt(population.size()));
-
-        for (int i = 1; i < 3; i++) {
-            GA competitor = population.get(random.nextInt(population.size()));
+        for (int i = 1; i < poolSize; i++) {
+            Genotype competitor = population.getGenotypes().get(random.nextInt(population.getSize()));
             if (competitor.getFitness() > best.getFitness()) {
                 best = competitor;
             }

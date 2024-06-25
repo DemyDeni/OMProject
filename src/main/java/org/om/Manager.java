@@ -53,6 +53,7 @@ public class Manager {
             }
 
             Population newPopulation = new Population();
+
             // leave 1/4 of original genotypes
             newPopulation.getGenotypes().addAll(population.getRandomGenotypes(population.getSize() / 4));
 
@@ -60,12 +61,12 @@ public class Manager {
             newPopulation.getGenotypes().addAll(population.getRandomGenotypesWithCrossover(population.getSize() / 4));
 
             // add 2/4 genotypes after crossover and mutation
-            newPopulation.getGenotypes().addAll(population.getRandomGenotypesWithMutation(population.getSize() / 4));
+            newPopulation.getGenotypes().addAll(population.getRandomGenotypesWithMutation(population.getSize() / 2));
 
             population = newPopulation;
         }
 
-        return null;
+        return population.getBestGenotype();
     }
 
 
@@ -99,6 +100,8 @@ public class Manager {
 
             // apply genotype and calculate fitness
             graph.applyGenotype(genotype);
+
+            //TODO: reset prices for items
         }
     }
 }
