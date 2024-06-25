@@ -8,8 +8,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class Stats {
-    Double soldPrice = 0d;
-    Integer ordersFailed = 0;
-    Double storageCost = 0d;
-    Double deliveryCost = 0d;
+    public Double soldPrice = 0d;
+    public Integer ordersFailed = 0;
+    public Double storageCost = 0d;
+    public Double deliveryCost = 0d;
 }

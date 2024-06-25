@@ -1,9 +1,13 @@
 package org.om;
 
+import lombok.SneakyThrows;
 import org.om.ga.Genotype;
+import org.om.ga.Stats;
 import org.om.graph.FitnessValues;
+import org.om.graph.SimulationInstance;
 
 public class App {
+    @SneakyThrows
     public static void main(String[] args) {
         FitnessValues fitnessValues = FitnessValues.builder()
                 .moveItemNum(10)
@@ -16,19 +20,25 @@ public class App {
                 .noAvailableItemsToTakeMod(0.05d)
                 .availableItemsToTakeMod(1d)
                 .build();
-        Manager manager = new Manager(100, fitnessValues);
-        Genotype best = manager.simulateOneByOne(30, 500);
+        Manager manager = new Manager(fitnessValues);
+        Genotype bestA = manager.simulateMultipleDaysPerIter(30, 200, 1000);
+        Genotype bestB = manager.simulateOneByOne(30, 100, 100);
 
+        System.out.println("Implementation A");
+        SimulationInstance simulationInstanceA = new SimulationInstance(manager.getStartingGraph().clone(), 0d, new FitnessValues());
+        simulationInstanceA.simulateDays(60, bestA.getTasks());
+        printInfo(simulationInstanceA.getStats());
 
-        Manager manager = new Manager();
-//        Genotype best = manager.simulateOneByOne(10, 100, 100);
-        Genotype best2 = manager.simulateMultipleDaysPerIter(30, 200, 1000);
+        System.out.println("\nImplementation B");
+        SimulationInstance simulationInstanceB = new SimulationInstance(manager.getStartingGraph().clone(), 0d, new FitnessValues());
+        simulationInstanceB.simulateDays(60, bestB.getTasks());
+        printInfo(simulationInstanceB.getStats());
+    }
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        try {
-            String name = reader.readLine();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    private static void printInfo(Stats stats) {
+        System.out.println("Sold price: " + stats.getSoldPrice());
+        System.out.println("Orders failed: " + stats.getOrdersFailed());
+        System.out.println("Storage cost: " + stats.getStorageCost());
+        System.out.println("Delivery cost: " + stats.getDeliveryCost());
     }
 }

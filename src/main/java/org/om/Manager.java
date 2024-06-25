@@ -5,7 +5,6 @@ import lombok.Setter;
 import org.om.ga.Genotype;
 import org.om.ga.Population;
 import org.om.ga.Stats;
-import org.om.graph.*;
 import org.om.ga.crossover.UniformCrossover;
 import org.om.ga.mutation.UniformMutation;
 import org.om.ga.selection.TournamentSelection;
@@ -19,11 +18,11 @@ import java.util.Random;
 @Getter
 @Setter
 public class Manager {
+    private Graph startingGraph;
     private Graph graph;
-    private Population population;
     private FitnessValues fitnessValues;
 
-    public Manager(Integer populationNum, FitnessValues fitnessValues) {
+    public Manager(FitnessValues fitnessValues) {
         GraphConfig config = GraphConfig.builder()
                 .itemsNum(5)
                 .itemMinPrice(10)
@@ -39,57 +38,59 @@ public class Manager {
                 .fitnessValues(fitnessValues)
                 .build();
         graph = new Graph(config);
-        population = getRandomPopulation(graph, populationNum, fitnessValues);
+        startingGraph = graph.clone();
         this.fitnessValues = fitnessValues;
     }
 
-    public Genotype simulateMultipleDaysPerIter(Integer days, Integer populationSize, Integer iterations){
-        Population population = getRandomPopulation(startingGraph, populationSize, 10, 0.15d);
+    public Genotype simulateMultipleDaysPerIter(Integer days, Integer populationSize, Integer iterations) {
+        Population population = getRandomPopulation(graph, populationSize, fitnessValues);
         TournamentSelection tournamentSelection = new TournamentSelection();
         UniformCrossover uniformCrossover = new UniformCrossover();
         UniformMutation uniformMutation = new UniformMutation();
         Random random = new Random();
+        List<Double> fitnessList = new ArrayList<>(days);
 
-        for (int i = 0; i < iterations; i++){
-            for (Genotype genotype : population.getGenotypes()){
-                Graph graph = startingGraph.clone();
-                SimulationInstance simulationInstance = new SimulationInstance(graph, 0);
+        for (int i = 0; i < iterations; i++) {
+            for (Genotype genotype : population.getGenotypes()) {
+                SimulationInstance simulationInstance = new SimulationInstance(graph.clone(), 0, fitnessValues);
                 genotype.setFitness(simulationInstance.simulateDays(days, genotype.getTasks()));
             }
 
-            System.out.println("Best fitness of iteration " + i + ": " + population.getBestGenotype().getFitness());
+            fitnessList.add(population.getBestGenotype().getFitness());
 
             Population popAfterSelection = new Population();
-            while (popAfterSelection.getGenotypes().size() < population.getGenotypes().size()/2){
+            while (popAfterSelection.getGenotypes().size() < population.getGenotypes().size() / 2) {
                 popAfterSelection.getGenotypes().add(tournamentSelection.select(population));
             }
 
             Population popCrossover = new Population();
-            while (popCrossover.getGenotypes().size() < popAfterSelection.getGenotypes().size()/2){
-                Genotype parent1 = popAfterSelection.getGenotypes().get(random.nextInt(0, popAfterSelection.getSize()-1));
-                Genotype parent2 = popAfterSelection.getGenotypes().get(random.nextInt(0, popAfterSelection.getSize()-1));
+            while (popCrossover.getGenotypes().size() < popAfterSelection.getGenotypes().size() / 2) {
+                Genotype parent1 = popAfterSelection.getGenotypes().get(random.nextInt(0, popAfterSelection.getSize() - 1));
+                Genotype parent2 = popAfterSelection.getGenotypes().get(random.nextInt(0, popAfterSelection.getSize() - 1));
                 popCrossover.getGenotypes().add(uniformCrossover.cross(parent1, parent2));
             }
 
             Population nextGeneration = new Population();
-            for (Genotype genotype : popCrossover.getGenotypes()){
-                Genotype genotypeToAdd = popAfterSelection.getGenotypes().get(random.nextInt(0, popAfterSelection.getSize()-1));
+            for (Genotype genotype : popCrossover.getGenotypes()) {
+                Genotype genotypeToAdd = popAfterSelection.getGenotypes().get(random.nextInt(0, popAfterSelection.getSize() - 1));
                 nextGeneration.getGenotypes().add(genotype);
                 nextGeneration.getGenotypes().add(genotypeToAdd);
             }
 
             List<Genotype> mutatedGenotypes = new ArrayList<>();
-            for (Genotype genotype : nextGeneration.getGenotypes()){
+            for (Genotype genotype : nextGeneration.getGenotypes()) {
                 mutatedGenotypes.add(uniformMutation.mutate(genotype));
             }
 
             nextGeneration.getGenotypes().addAll(mutatedGenotypes);
             population = nextGeneration;
         }
+
         return population.getBestGenotype();
     }
 
-    public Genotype simulateOneByOne(Integer days, Integer generationsNum) {
+    public Genotype simulateOneByOne(Integer days, Integer populationNum, Integer generationsNum) {
+        Population population = getRandomPopulation(graph, populationNum, fitnessValues);
         // list of choices for each person for each day
         ArrayList<HashMap<Person, HashMap<Item, Integer>>> personChoices = initializePersonChoices(days);
         List<Double> fitnessList = new ArrayList<>(days);
@@ -117,19 +118,10 @@ public class Manager {
 
             // apply best genotype to current graph
             Genotype best = population.getBestGenotype();
-            stats = new Stats();
             simulateGenerationForGenotype(graph, best, initializePersonChoicesForGeneration(), stats);
 
             fitnessList.add(best.getFitness());
         }
-
-        System.out.println("Minimum fitness: " + fitnessList.stream().mapToDouble(Double::doubleValue).min().getAsDouble());
-        System.out.println("Maximum fitness: " + fitnessList.stream().mapToDouble(Double::doubleValue).max().getAsDouble());
-        System.out.println("Average fitness: " + fitnessList.stream().mapToDouble(Double::doubleValue).average().getAsDouble());
-        System.out.println("Sold price: " + stats.getSoldPrice());
-        System.out.println("Orders failed: " + stats.getOrdersFailed());
-        System.out.println("Storage cost: " + stats.getStorageCost());
-        System.out.println("Delivery cost: " + stats.getDeliveryCost());
 
         return population.getBestGenotype();
     }
@@ -151,7 +143,7 @@ public class Manager {
         return personChoicesForGeneration;
     }
 
-    private Population getRandomPopulation(Graph graph, Integer population, FitnessValues fitnessValues) {
+    public Population getRandomPopulation(Graph graph, Integer population, FitnessValues fitnessValues) {
         Population newPopulation = new Population();
         for (int i = 0; i < population; i++) {
             newPopulation.getGenotypes().add(Genotype.generateRandomGenotype(graph, fitnessValues));
