@@ -9,14 +9,14 @@ public class App {
                 .moveItemNum(10)
                 .moveItemChance(0.15d)
                 .itemPriceMod(10d)
-                .manufacturerStorageCost(0.1d)
-                .distributorStorageCost(0.2d)
-                .retailerStorageCost(0.3d)
-                .noAvailableItemsToMoveMod(0.1d)
+                .manufacturerStorageCost(1d)
+                .distributorStorageCost(2d)
+                .retailerStorageCost(3d)
+                .moveItemMod(0.1d)
                 .noAvailableItemsToTakeMod(0.05d)
                 .availableItemsToTakeMod(1d)
                 .build();
         Manager manager = new Manager(100, fitnessValues);
-        Genotype best = manager.simulateOneByOne(50, 100);
+        Genotype best = manager.simulateOneByOne(30, 500);
     }
 }

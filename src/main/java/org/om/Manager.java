@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.om.ga.Genotype;
 import org.om.ga.Population;
+import org.om.ga.Stats;
 import org.om.graph.*;
 
 import java.util.ArrayList;
@@ -41,6 +42,7 @@ public class Manager {
         // list of choices for each person for each day
         ArrayList<HashMap<Person, HashMap<Item, Integer>>> personChoices = initializePersonChoices(days);
         List<Double> fitnessList = new ArrayList<>(days);
+        Stats stats = new Stats();
 
         // simulate day-by-day
         for (int d = 0; d < days; d++) {
@@ -64,7 +66,8 @@ public class Manager {
 
             // apply best genotype to current graph
             Genotype best = population.getBestGenotype();
-            graph.applyGenotype(best, fitnessValues);
+            stats = new Stats();
+            simulateGenerationForGenotype(graph, best, initializePersonChoicesForGeneration(), stats);
 
             fitnessList.add(best.getFitness());
         }
@@ -72,6 +75,10 @@ public class Manager {
         System.out.println("Minimum fitness: " + fitnessList.stream().mapToDouble(Double::doubleValue).min().getAsDouble());
         System.out.println("Maximum fitness: " + fitnessList.stream().mapToDouble(Double::doubleValue).max().getAsDouble());
         System.out.println("Average fitness: " + fitnessList.stream().mapToDouble(Double::doubleValue).average().getAsDouble());
+        System.out.println("Sold price: " + stats.getSoldPrice());
+        System.out.println("Orders failed: " + stats.getOrdersFailed());
+        System.out.println("Storage cost: " + stats.getStorageCost());
+        System.out.println("Delivery cost: " + stats.getDeliveryCost());
 
         return population.getBestGenotype();
     }
@@ -80,13 +87,17 @@ public class Manager {
     private ArrayList<HashMap<Person, HashMap<Item, Integer>>> initializePersonChoices(Integer days) {
         ArrayList<HashMap<Person, HashMap<Item, Integer>>> personChoices = new ArrayList<>(days);
         for (int i = 0; i < days; i++) {
-            HashMap<Person, HashMap<Item, Integer>> personChoicesForDay = new HashMap<>(graph.getPersons().size());
-            for (Person person : graph.getPersons()) {
-                personChoicesForDay.put(person, person.generateNewOrders());
-            }
-            personChoices.add(personChoicesForDay);
+            personChoices.add(initializePersonChoicesForGeneration());
         }
         return personChoices;
+    }
+
+    private HashMap<Person, HashMap<Item, Integer>> initializePersonChoicesForGeneration() {
+        HashMap<Person, HashMap<Item, Integer>> personChoicesForGeneration = new HashMap<>(graph.getPersons().size());
+        for (Person person : graph.getPersons()) {
+            personChoicesForGeneration.put(person, person.generateNewOrders());
+        }
+        return personChoicesForGeneration;
     }
 
     private Population getRandomPopulation(Graph graph, Integer population, FitnessValues fitnessValues) {
@@ -99,14 +110,18 @@ public class Manager {
 
     private void simulateDayForGenotype(Integer generations, Graph graph, Genotype genotype, HashMap<Person, HashMap<Item, Integer>> personChoices) {
         for (int i = 0; i < generations; i++) {
-            // generate new items on manufacture
-            graph.getManufacturer().generateNewItems();
-
-            // set predefined choices for each person
-            graph.applyPersonChoices(personChoices);
-
-            // apply genotype and calculate fitness
-            graph.applyGenotype(genotype, fitnessValues);
+            simulateGenerationForGenotype(graph, genotype, personChoices, new Stats());
         }
+    }
+
+    private void simulateGenerationForGenotype(Graph graph, Genotype genotype, HashMap<Person, HashMap<Item, Integer>> personChoices, Stats stats) {
+        // generate new items on manufacture
+        graph.getManufacturer().generateNewItems();
+
+        // set predefined choices for each person
+        graph.applyPersonChoices(personChoices);
+
+        // apply genotype and calculate fitness
+        graph.applyGenotype(genotype, fitnessValues, stats);
     }
 }

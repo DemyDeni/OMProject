@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.om.ga.Genotype;
+import org.om.ga.Stats;
 import org.om.ga.Task;
 
 import java.util.*;
@@ -131,15 +132,15 @@ public class Graph implements Cloneable {
         }
     }
 
-    public void applyGenotype(Genotype genotype, FitnessValues fitnessValues) {
+    public void applyGenotype(Genotype genotype, FitnessValues fitnessValues, Stats stats) {
         Double fitness = genotype.calculateFitness(this, fitnessValues);
-        fitness -= calculateStorageCost(genotype, fitnessValues);
-        fitness -= moveAndCalculateMoveCost(genotype.getTasks(), fitnessValues);
-        fitness -= takeAndCalculateTakeCost(fitnessValues);
+        fitness -= calculateStorageCost(genotype, fitnessValues, stats);
+        fitness -= moveAndCalculateMoveCost(genotype.getTasks(), fitnessValues, stats);
+        fitness -= takeAndCalculateTakeCost(fitnessValues, stats);
         genotype.setFitness(fitness);
     }
 
-    private Double calculateStorageCost(Genotype genotype, FitnessValues fitnessValues) {
+    private Double calculateStorageCost(Genotype genotype, FitnessValues fitnessValues, Stats stats) {
         // iterate over all items in all manufacturer
         Double fitnessPenalty = calculateStorageCostForItems(StorageType.MANUFACTURER, manufacturer.getItems(), fitnessValues);
         // iterate over all items in all distributors
@@ -150,6 +151,7 @@ public class Graph implements Cloneable {
         for (Retailer retailer : retailers) {
             fitnessPenalty += calculateStorageCostForItems(StorageType.RETAILER, retailer.getItems(), fitnessValues);
         }
+        stats.setStorageCost(stats.getStorageCost() + fitnessPenalty);
         return fitnessPenalty;
     }
 
@@ -179,7 +181,7 @@ public class Graph implements Cloneable {
         }
     }
 
-    private Double moveAndCalculateMoveCost(List<Task> tasks, FitnessValues fitnessValues) {
+    private Double moveAndCalculateMoveCost(List<Task> tasks, FitnessValues fitnessValues, Stats stats) {
         Double fitnessPenalty = 0d;
         for (Task task : tasks) {
             Item item = task.getItem();
@@ -189,33 +191,37 @@ public class Graph implements Cloneable {
                 Distributor to = distributors.get(task.getTo());
                 if (from.getItems().get(item) < itemNum) {
                     int itemsMissing = itemNum - from.getItems().get(item);
-                    fitnessPenalty += itemsMissing * fitnessValues.getNoAvailableItemsToMoveMod();
                     from.getItems().put(item, 0);
                     to.getItems().put(item, to.getItems().get(item) + itemNum - itemsMissing);
+                    fitnessPenalty += from.getDistributorDistances().get(task.getTo()) * (itemNum - itemsMissing) * fitnessValues.getMoveItemMod();
+                    stats.setDeliveryCost(stats.getDeliveryCost() + from.getDistributorDistances().get(task.getTo()) * (itemNum - itemsMissing));
                 } else {
                     from.getItems().put(item, from.getItems().get(item) - itemNum);
                     to.getItems().put(item, to.getItems().get(item) + itemNum);
+                    fitnessPenalty += from.getDistributorDistances().get(task.getTo()) * itemNum * fitnessValues.getMoveItemMod();
+                    stats.setDeliveryCost(stats.getDeliveryCost() + from.getDistributorDistances().get(task.getTo()) * itemNum);
                 }
-                fitnessPenalty += manufacturer.getDistributorDistances().get(task.getTo());
             } else {
                 Distributor from = distributors.get(task.getFrom());
                 Retailer to = retailers.get(task.getTo());
                 if (from.getItems().get(item) < itemNum) {
                     int itemsMissing = itemNum - from.getItems().get(item);
-                    fitnessPenalty += itemsMissing * fitnessValues.getNoAvailableItemsToMoveMod();
                     from.getItems().put(item, 0);
                     to.getItems().put(item, to.getItems().get(item) + itemNum - itemsMissing);
+                    fitnessPenalty += from.getRetailerDistances().get(task.getTo()) * (itemNum - itemsMissing) * fitnessValues.getMoveItemMod();
+                    stats.setDeliveryCost(stats.getDeliveryCost() + from.getRetailerDistances().get(task.getTo()) * (itemNum - itemsMissing));
                 } else {
                     from.getItems().put(item, from.getItems().get(item) - itemNum);
                     to.getItems().put(item, to.getItems().get(item) + itemNum);
+                    fitnessPenalty += from.getRetailerDistances().get(task.getTo()) * itemNum * fitnessValues.getMoveItemMod();
+                    stats.setDeliveryCost(stats.getDeliveryCost() + from.getRetailerDistances().get(task.getTo()) * itemNum);
                 }
-                fitnessPenalty += from.getRetailerDistances().get(task.getTo());
             }
         }
         return fitnessPenalty;
     }
 
-    private Double takeAndCalculateTakeCost(FitnessValues fitnessValues) {
+    private Double takeAndCalculateTakeCost(FitnessValues fitnessValues, Stats stats) {
         Double fitnessPenalty = 0d;
         for (Person person : persons) {
             for (Map.Entry<Item, Integer> order : person.getOrders().entrySet()) {
@@ -225,19 +231,21 @@ public class Graph implements Cloneable {
                     int itemsInRetailer = retailer.getItems().get(order.getKey());
                     int itemsToTake;
                     if (itemsInRetailer == 0) continue;
-                    else if (itemsInRetailer >= order.getValue()) {
-                        itemsToTake = itemsInRetailer - order.getValue();
-                    } else {
+                    else if (itemsInRetailer < order.getValue()) {
                         itemsToTake = itemsInRetailer;
+                    } else {
+                        itemsToTake = order.getValue();
                     }
                     retailer.getItems().put(order.getKey(), itemsInRetailer - itemsToTake);
                     itemsLeft -= itemsToTake;
-                    fitnessPenalty -= itemsToTake * fitnessValues.getAvailableItemsToTakeMod();
+                    fitnessPenalty -= itemsToTake * order.getKey().getPrice() * fitnessValues.getAvailableItemsToTakeMod();
+                    stats.setSoldPrice(stats.getSoldPrice() + itemsToTake * order.getKey().getPrice());
 
                     if (itemsLeft == 0) {
                         break;
                     } else {
                         fitnessPenalty += itemsLeft * fitnessValues.getNoAvailableItemsToTakeMod();
+                        stats.setOrdersFailed(stats.getOrdersFailed() + itemsLeft);
                     }
                 }
             }

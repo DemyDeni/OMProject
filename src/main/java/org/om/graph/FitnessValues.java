@@ -14,7 +14,7 @@ public class FitnessValues {
     private Double manufacturerStorageCost = 0.1d;
     private Double distributorStorageCost = 0.2d;
     private Double retailerStorageCost = 0.3d;
-    private Double noAvailableItemsToMoveMod = 0.01d;
+    private Double moveItemMod = 0.01d;
     private Double noAvailableItemsToTakeMod = 0.01d;
     private Double availableItemsToTakeMod = 1d;
 }
