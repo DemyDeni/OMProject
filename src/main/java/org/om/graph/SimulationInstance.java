@@ -6,10 +6,7 @@ import lombok.Setter;
 import org.om.ga.Stats;
 import org.om.ga.Task;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 @AllArgsConstructor
 @Getter
@@ -58,27 +55,9 @@ public class SimulationInstance {
         int i = 0;
         for (Person person : graph.getPersons()) {
             HashMap<Item, Integer> orders = person.generateNewOrders();
-            for (Map.Entry<Item, Integer> entry : orders.entrySet()) {
-                if (entry.getValue() > 0) {
-                    for (Retailer retailer : graph.getRetailers()) {
-                        if (retailer.items.get(entry.getKey()) > entry.getValue()) {
-                            fitness += entry.getValue() * entry.getKey().getPrice() * pricePerItemSold;
-                            stats.soldPrice += entry.getValue() * entry.getKey().getPrice();
-                            fitness -= retailer.personDistances.get(i) * pricePerUnitOfDistance;
-                            stats.deliveryCost += retailer.personDistances.get(i);
-
-                            retailer.items.put(entry.getKey(), retailer.items.get(entry.getKey()) - entry.getValue());
-                            entry.setValue(0);
-                        } else if (retailer.items.get(entry.getKey()) > 0) {
-                            fitness += retailer.items.get(entry.getKey()) * entry.getKey().getPrice() * pricePerItemSold;
-                            stats.soldPrice += retailer.items.get(entry.getKey()) * entry.getKey().getPrice();
-                            fitness -= retailer.personDistances.get(i) * pricePerUnitOfDistance;
-                            stats.deliveryCost += retailer.personDistances.get(i);
-
-                            entry.setValue(entry.getValue() - retailer.items.get(entry.getKey()));
-                            retailer.items.put(entry.getKey(), 0);
-                        }
-                    }
+            for (Map.Entry<Item, Integer> order : orders.entrySet()) {
+                if (order.getValue() > 0) {
+                    sellItems(order, i);
                 }
             }
             for (Map.Entry<Item, Integer> entry : orders.entrySet()) {
@@ -91,36 +70,73 @@ public class SimulationInstance {
         }
     }
 
+    public void sellItems(Map.Entry<Item, Integer> order, int i) {
+        for (Retailer retailer : graph.getRetailers()) {
+            if (retailer.items.get(order.getKey()) > order.getValue()) {
+                fitness += order.getValue() * order.getKey().getPrice() * pricePerItemSold;
+                stats.soldPrice += order.getValue() * order.getKey().getPrice();
+
+                fitness -= retailer.personDistances.get(i) * pricePerUnitOfDistance;
+                stats.deliveryCost += retailer.personDistances.get(i);
+
+                retailer.items.put(order.getKey(), retailer.items.get(order.getKey()) - order.getValue());
+                order.setValue(0);
+            } else if (retailer.items.get(order.getKey()) > 0) {
+                fitness += retailer.items.get(order.getKey()) * order.getKey().getPrice() * pricePerItemSold;
+                stats.soldPrice += retailer.items.get(order.getKey()) * order.getKey().getPrice();
+
+                fitness -= retailer.personDistances.get(i) * pricePerUnitOfDistance;
+                stats.deliveryCost += retailer.personDistances.get(i);
+
+                order.setValue(order.getValue() - retailer.items.get(order.getKey()));
+                retailer.items.put(order.getKey(), 0);
+            }
+        }
+    }
+
     public void runGA(List<Task> tasks) {
+
         for (Task task : tasks) {
             if (random.nextDouble(0, 1d) < task.getChance()) {
+                ArrayList<Distributor> distributors = graph.getDistributors();
+                ArrayList<Retailer> retailers = graph.getRetailers();
+                Manufacturer manufacturer = graph.getManufacturer();
+
                 if (task.getFromType() == StorageType.DISTRIBUTOR) {
-                    if (graph.getDistributors().get(task.getFrom()).items.get(task.getItem()) > task.getItemNum()) {
-                        graph.getDistributors().get(task.getFrom()).items.put(task.getItem(), graph.getDistributors().get(task.getFrom()).items.get(task.getItem()) - task.getItemNum());
-                        graph.getRetailers().get(task.getTo()).items.put(task.getItem(), graph.getRetailers().get(task.getTo()).items.get(task.getItem()) + task.getItemNum());
+                    HashMap<Item, Integer> distributorFromItems = distributors.get(task.getFrom()).items;
+                    HashMap<Item, Integer> retailerToItems = retailers.get(task.getTo()).items;
+                    Integer distance = distributors.get(task.getFrom()).retailerDistances.get(task.getTo());
 
-                        fitness -= graph.getDistributors().get(task.getFrom()).retailerDistances.get(task.getTo()) * pricePerUnitOfDistance * task.getItemNum();
-                        stats.deliveryCost += graph.getDistributors().get(task.getFrom()).retailerDistances.get(task.getTo()) * task.getItemNum();
-                    } else if (graph.getDistributors().get(task.getFrom()).items.get(task.getItem()) > 0) {
-                        graph.getRetailers().get(task.getTo()).items.put(task.getItem(), graph.getRetailers().get(task.getTo()).items.get(task.getItem()) + graph.getDistributors().get(task.getFrom()).items.get(task.getItem()));
+                    if (distributorFromItems.get(task.getItem()) > task.getItemNum()) {
+                        distributorFromItems.put(task.getItem(), distributorFromItems.get(task.getItem()) - task.getItemNum());
+                        retailerToItems.put(task.getItem(), retailerToItems.get(task.getItem()) + task.getItemNum());
 
-                        fitness -= graph.getDistributors().get(task.getFrom()).retailerDistances.get(task.getTo()) * pricePerUnitOfDistance * graph.getDistributors().get(task.getFrom()).items.get(task.getItem());
-                        stats.deliveryCost += graph.getDistributors().get(task.getFrom()).retailerDistances.get(task.getTo()) * graph.getDistributors().get(task.getFrom()).items.get(task.getItem());
+                        fitness -= distance * pricePerUnitOfDistance * task.getItemNum();
+                        stats.deliveryCost += distance * task.getItemNum();
+                    } else if (distributorFromItems.get(task.getItem()) != 0) {
+                        retailerToItems.put(task.getItem(), retailerToItems.get(task.getItem()) + distributorFromItems.get(task.getItem()));
 
-                        graph.getDistributors().get(task.getFrom()).items.put(task.getItem(), 0);
+                        fitness -= distance * pricePerUnitOfDistance * distributorFromItems.get(task.getItem());
+                        stats.deliveryCost += distance * distributorFromItems.get(task.getItem());
+
+                        distributorFromItems.put(task.getItem(), 0);
                     }
                 } else {
-                    if (graph.getManufacturer().getItems().get(task.getItem()) > task.getItemNum()) {
-                        graph.getManufacturer().getItems().put(task.getItem(), graph.getManufacturer().getItems().get(task.getItem()) - task.getItemNum());
-                        graph.getDistributors().get(task.getTo()).items.put(task.getItem(), graph.getDistributors().get(task.getTo()).items.get(task.getItem()) + task.getItemNum());
+                    HashMap<Item, Integer> manufacturerItems = manufacturer.getItems();
+                    HashMap<Item, Integer> distributorToItems = graph.getDistributors().get(task.getTo()).items;
+                    Integer distance = manufacturer.getDistributorDistances().get(task.getTo());
 
-                        fitness -= graph.getManufacturer().getDistributorDistances().get(task.getTo()) * pricePerUnitOfDistance * task.getItemNum();
-                        stats.deliveryCost += graph.getDistributors().get(task.getFrom()).retailerDistances.get(task.getTo()) * graph.getDistributors().get(task.getFrom()).items.get(task.getItem());
-                    } else if (graph.getManufacturer().getItems().get(task.getItem()) > 0) {
+                    if (manufacturerItems.get(task.getItem()) > task.getItemNum()) {
+                        manufacturerItems.put(task.getItem(), manufacturerItems.get(task.getItem()) - task.getItemNum());
+                        distributorToItems.put(task.getItem(), distributorToItems.get(task.getItem()) + task.getItemNum());
+
+                        fitness -= distance * pricePerUnitOfDistance * task.getItemNum();
+                        stats.deliveryCost += distance * distributorToItems.get(task.getItem());
+                    } else if (manufacturerItems.get(task.getItem()) != 0) {
                         graph.getDistributors().get(task.getTo()).items.put(task.getItem(), graph.getDistributors().get(task.getTo()).items.get(task.getItem()) + graph.getManufacturer().getItems().get(task.getItem()));
 
-                        fitness -= graph.getManufacturer().getDistributorDistances().get(task.getTo()) * pricePerUnitOfDistance * graph.getManufacturer().getItems().get(task.getItem());
-                        stats.deliveryCost += graph.getManufacturer().getDistributorDistances().get(task.getTo()) * graph.getManufacturer().getItems().get(task.getItem());
+                        fitness -= distance * pricePerUnitOfDistance * manufacturerItems.get(task.getItem());
+                        stats.deliveryCost += distance * graph.getManufacturer().getItems().get(task.getItem());
 
                         graph.getManufacturer().getItems().put(task.getItem(), 0);
                     }
